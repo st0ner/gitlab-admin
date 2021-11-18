@@ -128,10 +128,7 @@ if __name__ == "__main__":
             jira_fields_name_map = {jira.field["name"]:jira.field["id"] for jira.field in jira_fields}
 
             # Get gitlab group
-            group_name = issues_yaml_dict["import_epics_from_jira"]["gitlab_group_path"].split("/")[-1]
-            for group in gl.groups.list(search=group_name):
-                if group.full_path == issues_yaml_dict["import_epics_from_jira"]["gitlab_group_path"]:
-                    gitlab_group = group
+            gitlab_group = gl.groups.get(issues_yaml_dict["import_epics_from_jira"]["gitlab_group_path"])
             logger.info("Found group ID: {id}, name: {group}".format(group=gitlab_group.full_name, id=gitlab_group.id))
 
             # Search jira issues
@@ -399,10 +396,7 @@ if __name__ == "__main__":
                 # Epic
                 if hasattr(jira_issue.fields, "parent"):
                     if jira_issue.fields.parent.key in issues_yaml_dict["import_issues_from_jira"]["parent_to_epic_map"]:
-                        group_name = issues_yaml_dict["import_issues_from_jira"]["gitlab_group_path"].split("/")[-1]
-                        for group in gl.groups.list(search=group_name):
-                            if group.full_path == issues_yaml_dict["import_issues_from_jira"]["gitlab_group_path"]:
-                                gitlab_group = group
+                        gitlab_group = gl.groups.get(issues_yaml_dict["import_epics_from_jira"]["gitlab_group_path"])
                         logger.info("Found group ID: {id}, name: {group}".format(group=gitlab_group.full_name, id=gitlab_group.id))
                         epic = gitlab_group.epics.get(issues_yaml_dict["import_issues_from_jira"]["parent_to_epic_map"][jira_issue.fields.parent.key])
                         logger.info("Found epic ID: {id}, name: {epic}".format(epic=epic.title, id=epic.id))
@@ -415,8 +409,10 @@ if __name__ == "__main__":
                         milestone = gitlab_project.milestones.get(ms_id)
                         logger.info("Found milestone ID: {id}, name: {milestone}".format(milestone=milestone.title, id=milestone.id))
                         gitlab_issue_data["milestone_id"] = milestone.id
+                    elif jira_issue.fields.parent.key in issues_yaml_dict["import_issues_from_jira"]["parent_to_none_map"]:
+                        logger.info("Parent ignored")
                     else:
-                        raise Exception("Issue parent is not defined neither in parent_to_epic_map nor in parent_to_milestone_map")
+                        raise Exception("Issue parent is not defined neither in parent_to_epic_map nor in parent_to_milestone_map or parent_to_none_map")
 
                 # Description
                 if jira_issue.fields.description is not None:
